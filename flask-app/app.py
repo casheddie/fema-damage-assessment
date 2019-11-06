@@ -1,8 +1,8 @@
 ## Import on my own
 from flask import Flask, render_template, url_for, flash, redirect, request
-from flask_sqlalchemy import sqlalchemy  # going to use an SQL lite db
-## Imports from LA group
-from functions import get_coordinates, get_address, get_addresses
+from flask_sqlalchemy import sqlalchemy
+from Getting_addresses_from_pictures import get_coordinates, get_address, get_addresses
+from Getting_zillow_information_from_address import get_zillow_info
 from forms import RegistrationForm, LoginForm, AddressForm # Import functions from forms.py
 from werkzeug.utils import secure_filename
 from sqlalchemy import create_engine
@@ -84,9 +84,9 @@ def neighborhood():
 # SATELLITE IMAGE PAGE
 @app.route('/satellite')
 def satellite():
-    full_filename = os.path.join(app.config['SAT_FOLDER'], 'n_2.jpg')
+    full_filename = os.path.join(app.config['SAT_FOLDER'], 'anacostia.jpg')
     return render_template('satellite.html', title='Satellite Imagery',
-    satellite_image=full_filename, neighborhood_name='Neighborhood'
+    satellite_image=full_filename, neighborhood_name='Anacostia'
     )
 
 
@@ -127,40 +127,45 @@ def verify():
         else:
             flash('Invalid address. Try again.', 'danger')
     return render_template('verify.html', title='Verify Address',form=form,
-    address_1 = "Address 1",
-    address_2 = "Address 2",
-    address_3 = "Address 3",
-    address_4 = "Address 4")
+    address_1 = "3324 Dent Pl NW, Washington, DC 20007, USA",
+    address_2 = "3330 Dent Pl NW, Washington, DC 20007, USA",
+    address_3 = "3322 Dent Pl NW, Washington, DC 20007, USA",
+    address_4 = "3331 Dent Pl NW, Washington, DC 20007, USA")
 
 
 @app.route('/report', methods = ['GET', 'POST'])
 def report():
-   if request.method == 'POST':
-      f = request.files['file']
-      if f.filename =='':
-          flash('No Selected file')
-          return redirect('upload.html')
-      else:
-          f.save(f'static/user-photos/{secure_filename(f.filename)}')
-          master_results = custom.master_query(f'static/user-photos/{secure_filename(f.filename)}')
-          name = str(time.time())
-          os.rename('static/google-pics/gsv_0.jpg',f'static/google-pics/{name}.jpg')
+   # if request.method == 'POST':
+   #    f = request.files['file']
+   #    if f.filename =='':
+   #        flash('No Selected file')
+   #        return redirect('upload.html')
+   #    else:
+   #        f.save(f'static/user-photos/{secure_filename(f.filename)}')
+   #        master_results = custom.master_query(f'static/user-photos/{secure_filename(f.filename)}')
+   #        name = str(time.time())
+   #        os.rename('static/google-pics/gsv_0.jpg',f'static/google-pics/{name}.jpg')
+   master_results = get_zillow_info('3318 Dent Pl NW', 20007)
 
-   return render_template('report.html', title='Report'
-   # zillow_id = master_results['zillow_id'],
-   # home_type = master_results['home_type'],
-   # year_built = master_results['year_built'],
-   # property_size = master_results['property_size'],
-   # home_size = master_results['home_size'],
-   # bathrooms = master_results['bathrooms'],
-   # bedrooms = master_results['bedrooms'],
-   # last_sold_date = master_results['last_sold_date'],
-   # last_sold_price = master_results['last_sold_price'],
-   # zestimate_amount = master_results['zestimate_amount'],
-   # address = master_results['address'],
-   # filename = f.filename,
-   # name =name
+   return render_template('report.html', title='Report',
+   zillow_id = master_results['zpid'],
+   zestimate_amount = master_results['current_value'],
+   #neighborhood = master_results['neighborhood'],
+   last_sold_price = master_results['last_sold'],
+   last_sold_date = master_results['last_sold_date'],
+   home_type = master_results['property_type'],
+   year_built = master_results['year_built'],
+   bedrooms = master_results['bedrooms'],
+   bathrooms = master_results['bathrooms'],
+   home_size = master_results['sqft'],
+   property_size = master_results['lot_size'],
+   address = '3324 Dent Pl NW, Washington, DC 20007',
+   filename = 'gtown_house.jpg',
+   name = 'gtown_house_goog.jpg'
+
    )
+
+
 
 @app.route('/submitted', methods= ['GET','POST'])
 def submitted():
